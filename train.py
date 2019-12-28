@@ -1,5 +1,8 @@
+import os
+import random
+import warnings
+import time
 import shutil
-
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -10,21 +13,27 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 from config import get_cfg_defaults
-import os
-import random
-import warnings
-import time
-from tasks.image_classify_task import ImageClassifyTask
+import tasks
 from utils import AverageMeter, ProgressMeter
 
+# list all defined tasks
+all_tasks = sorted(name for name in tasks.__dict__
+                   if name[0].isupper() and not name.startswith("__"))
+
+# get configurations
 cfg = get_cfg_defaults()
 cfg.merge_from_file("settings.yaml")
 cfg.freeze()
-task = ImageClassifyTask(cfg)
-# print(cfg)
 
+# get the train task
+assert cfg.TRAIN.TASK in all_tasks, "undefined task {0}".format(cfg.TRAIN.TASK)
+task = tasks.__dict__[cfg.TRAIN.TASK](cfg)
+
+# whether use fp16
 if cfg.SYSTEM.FP16 is True:
     from apex import amp
+
+best_metric = 0
 
 
 def main():
@@ -53,6 +62,7 @@ def main_worker(gpu):
     start_epoch = cfg.TRAIN.START_EPOCH
 
     # initialize model
+    print("=> creating model...")
     model = task.get_model()
 
     # initialize distributed settings
@@ -69,8 +79,7 @@ def main_worker(gpu):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
     else:
         # non-distributed
-        model.cuda()
-        model = torch.nn.parallel.DistributedDataParallel(model)
+        model = torch.nn.DataParallel(model).cuda()
 
     # loss and optimizer
     criterion = task.get_criterion().cuda(gpu)
@@ -85,8 +94,11 @@ def main_worker(gpu):
         # resume from checkpoint
         if os.path.isfile(cfg.TRAIN.RESUME_FROM):
             print("=> loading checkpoint '{}'".format(cfg.TRAIN.RESUME_FROM))
-            loc = 'cuda:{}'.format(gpu)
-            checkpoint = torch.load(cfg.TRAIN.RESUME_FROM, map_location=loc)
+            if gpu is None:
+                checkpoint = torch.load(cfg.TRAIN.RESUME_FROM)
+            else:
+                loc = 'cuda:{}'.format(gpu)
+                checkpoint = torch.load(cfg.TRAIN.RESUME_FROM, map_location=loc)
             start_epoch = checkpoint["epoch"]
             best_metric = checkpoint["best_metric"]
             best_metric = best_metric.to(gpu)
@@ -127,10 +139,12 @@ def main_worker(gpu):
         metric1 = validate(val_loader, model, criterion, gpu)
 
         # remember best metric and save checkpoint
-        is_best = metric1 > best_metric
-        best_metric = max(metric1, best_metric)
+        is_best, best_metric = task.update_metric(best_metric, metric1)
 
-        ckpt_filename = os.path.join(cfg.TRAIN.CHECKPT_PATH, "{0}_epoch{1}.pt".format(cfg.TRAIN.MODEL_NAME, epoch))
+        # save checkpoint
+        if not os.path.isdir(cfg.TRAIN.CHECKPT_PATH):
+            os.mkdir(cfg.TRAIN.CHECKPT_PATH)
+        ckpt_filename = os.path.join(cfg.TRAIN.CHECKPT_PATH, "{0}_epoch_{1}.pt".format(cfg.TRAIN.MODEL_NAME, epoch))
         if not distributed or gpu == 0:
             save_checkpoint({
                 'epoch': epoch + 1,
@@ -173,7 +187,7 @@ def train(train_loader, model, criterion, optimizer, epoch, gpu):
         m_out = metric(output, target)
         losses.update(loss.item(), source.size(0))
         for m, o in zip(metric_list, m_out):
-            m.update(o, source.size(0))
+            m.update(o[0], source.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -225,7 +239,7 @@ def validate(val_loader, model, criterion, gpu):
             m_out = metric(output, target)
             losses.update(loss.item(), source.size(0))
             for m, o in zip(metric_list, m_out):
-                m.update(o, source.size(0))
+                m.update(o[0], source.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -234,19 +248,19 @@ def validate(val_loader, model, criterion, gpu):
             if i % cfg.TRAIN.PRINT_FREQ == 0:
                 progress.display(i)
 
-        summary = [name + ": " + val.avg for name, val in zip(metric_dict['name'], metric_list)]
+        summary = [name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
         print(*summary)
 
     return metric_list[0].avg
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, filename='checkpoint.pt'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pt')
+        shutil.copyfile(filename, os.path.join(cfg.TRAIN.CHECKPT_PATH, 'model_best.pt'))
 
 
-def adjust_learning_rate(optimizer, epoch, cfg):
+def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     lr = cfg.TRAIN.LR * (0.1 ** (epoch // 30))
     for param_group in optimizer.param_groups:

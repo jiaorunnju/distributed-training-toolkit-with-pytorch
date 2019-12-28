@@ -1,0 +1,8 @@
+SYSTEM:
+  NUM_GPUS: 1
+TRAIN:
+  CUDNN_BENCHMARK: True
+  TRAIN_DATA: '/data1/imagenet/val'
+  VALID_DATA: '/data1/imagenet/val'
+  BATCH_SIZE: 128
+  RESUME_FROM: 'checkpoint/model_epoch_4.pt'

@@ -65,7 +65,15 @@ class ImageClassifyTask(TrainTask):
                     res.append(correct_k.mul_(100.0 / batch_size))
                 return res
 
+        '''
+        return a dict, name is the name of all metrics, and the function metric
+        takes in output and target, returns values of all metrics in a list 
+        '''
         return {
             "name": ['Acc@1', 'Acc@5'],
-            "metric": lambda x, y: accuracy(x, y, topk=(1, 5))
+            "metric": lambda x, y: accuracy(x, y, topk=(1, 5)),
+
         }
+
+    def update_metric(self, old, new):
+        return new > old, max(old, new)

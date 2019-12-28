@@ -42,6 +42,7 @@ class TrainTask:
     def get_criterion(self):
         """
         make a function that compute the loss
+        the loss function takes exactly 2 inputs, source and target
         :return: loss function
         """
         pass
@@ -49,7 +50,19 @@ class TrainTask:
     @abstractmethod
     def get_metric(self):
         """
-        make a function that compute the metric
+        make a function that compute the metric,
+        return a dict, name is the name of all metrics, and the function metric
+        takes in source and target, returns values of all metrics in a list.
         :return: metric function
+        """
+        pass
+
+    @abstractmethod
+    def update_metric(self, old, new):
+        """
+        compare 2 metrics so we can keep the best model
+        :param old: old metric value
+        :param new: new metric value
+        :return:  is_better: whether the new one is better; best: the best metric value
         """
         pass

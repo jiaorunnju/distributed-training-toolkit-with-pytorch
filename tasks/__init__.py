@@ -1,0 +1,1 @@
+from .image_classify_task import ImageClassifyTask
