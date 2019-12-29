@@ -2,16 +2,17 @@ SYSTEM:
   NUM_GPUS: 1
   FP16: True
 TRAIN:
+  TASK: 'Cifar10Task'
   CUDNN_BENCHMARK: True
-  TRAIN_DATA: '/data1/imagenet/val'
-  VALID_DATA: '/data1/imagenet/val'
-  BATCH_SIZE: 128
+  TRAIN_DATA: '/data1/cifar10'
+  VALID_DATA: '/data1/cifar10'
+  BATCH_SIZE: 512
 OPTIMIZER:
   NAME: SGD
-  LR: 0.1
+  LR: 0.01
   MOMENTUM: 0.9
   NESTEROV: True
 SCHEDULER:
   VERBOSE: True
-  PATIENCE: 5
-  THRESHOLD: 1e-3
+  PATIENCE: 10
+  THRESHOLD: 1e-4
