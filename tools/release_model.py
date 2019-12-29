@@ -13,5 +13,5 @@ args = parser.parse_args()
 assert os.path.isfile(args.model), "checkpoint file does not exist!"
 
 ckpt = torch.load(args.model)
-ckpt['optimizer'] = None
-torch.save(ckpt, args.output)
+released_model = ckpt['state_dict']
+torch.save(released_model, args.output)
