@@ -1,6 +1,6 @@
 SYSTEM:
   NUM_GPUS: 1
-  FP16: False
+  FP16: True
 TRAIN:
   CUDNN_BENCHMARK: True
   TRAIN_DATA: '/data1/imagenet/val'

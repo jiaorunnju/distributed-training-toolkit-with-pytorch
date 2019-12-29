@@ -28,7 +28,7 @@ _C.SYSTEM.DIST_URL = 'tcp://127.0.0.1:23456'
 _C.SYSTEM.FP16 = False
 
 # Apex optimization level
-_C.SYSTEM.OP_LEVEL = 'o1'
+_C.SYSTEM.OP_LEVEL = 'O1'
 
 '''
 configs for training

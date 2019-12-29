@@ -66,13 +66,18 @@ def main_worker(gpu):
 
     # initialize model
     print("=> creating model...")
-    model = task.get_model()
+    model = task.get_model().cuda()
+    # loss and optimizer
+    criterion = task.get_criterion().cuda(gpu)
+    optimizer = get_optimizer(model.parameters(), cfg)
+
+    if cfg.SYSTEM.FP16:
+        model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
     # initialize process group
     if distributed:
         dist.init_process_group(backend=cfg.SYSTEM.BACKEND, init_method=cfg.SYSTEM.DIST_URL,
                                 world_size=cfg.SYSTEM.NUM_GPUS)
-
     if gpu is not None:
         # distributed training
         torch.cuda.set_device(gpu)
@@ -84,15 +89,9 @@ def main_worker(gpu):
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
 
-    # loss and optimizer
-    criterion = task.get_criterion().cuda(gpu)
-    optimizer = get_optimizer(model.parameters(), cfg)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE, factor=cfg.SCHEDULER.FACTOR,
                                                            patience=cfg.SCHEDULER.PATIENCE, verbose=cfg.SCHEDULER.VERBOSE,
                                                            threshold=cfg.SCHEDULER.THRESHOLD, min_lr=cfg.SCHEDULER.MIN_LR)
-
-    if cfg.SYSTEM.FP16:
-        model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
     if len(cfg.TRAIN.RESUME_FROM) > 0:
         # resume from checkpoint
