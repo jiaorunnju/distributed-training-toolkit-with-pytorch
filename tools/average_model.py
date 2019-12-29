@@ -22,7 +22,7 @@ def average_models(model_files):
 
 def main():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-models", "-m", nargs="+", required=True,
+    parser.add_argument("models", metavar='MODELS', nargs="+",
                         help="List of models")
     parser.add_argument("-output", "-o", default="averaged_model.pt",
                         help="Output file")
