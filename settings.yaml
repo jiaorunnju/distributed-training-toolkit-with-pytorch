@@ -6,4 +6,12 @@ TRAIN:
   TRAIN_DATA: '/data1/imagenet/val'
   VALID_DATA: '/data1/imagenet/val'
   BATCH_SIZE: 128
-  RESUME_FROM: 'checkpoint/model_epoch_4.pt'
+OPTIMIZER:
+  NAME: SGD
+  LR: 0.1
+  MOMENTUM: 0.9
+  NESTEROV: True
+SCHEDULER:
+  VERBOSE: True
+  PATIENCE: 5
+  THRESHOLD: 1e-3

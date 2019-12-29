@@ -3,6 +3,9 @@ import os
 
 _C = CN()
 
+'''
+configs for system and pytorch
+'''
 # configs for system
 _C.SYSTEM = CN()
 
@@ -27,21 +30,14 @@ _C.SYSTEM.FP16 = False
 # Apex optimization level
 _C.SYSTEM.OP_LEVEL = 'o1'
 
-
+'''
+configs for training
+'''
 # configs for training
 _C.TRAIN = CN()
 
 # task name
 _C.TRAIN.TASK = 'ImageClassifyTask'
-
-# learning rate
-
-_C.TRAIN.LR = 0.1
-# momentum
-_C.TRAIN.MOMENTUM = 0.9
-
-# weight decay
-_C.TRAIN.WEIGHT_DECAY = 1e-4
 
 # data path
 _C.TRAIN.DATA = "data"
@@ -74,6 +70,75 @@ _C.TRAIN.CUDNN_BENCHMARK = False
 
 # print freq
 _C.TRAIN.PRINT_FREQ = 10
+
+'''
+configs for optimizer
+'''
+_C.OPTIMIZER = CN()
+
+# optimizer
+_C.OPTIMIZER.NAME = 'SGD'
+
+# learning rate
+_C.OPTIMIZER.LR = 0.01
+
+# momentum in RMSprop, SGD,
+_C.OPTIMIZER.MOMENTUM = 0.0
+
+# weight decay
+_C.OPTIMIZER.WEIGHT_DECAY = 0.0
+
+# rho in adadelta
+_C.OPTIMIZER.RHO = 0.9
+
+# lr_decay in adagrad
+_C.OPTIMIZER.LR_DECAY = 0
+
+# betas in adam, adamW, sparseadam, adamax
+_C.OPTIMIZER.BETAS = (0.9, 0.999)
+
+# amsgrad in adam, adamW, sparseadam
+_C.OPTIMIZER.AMSGRAD = False
+
+# lambd in ASGD
+_C.OPTIMIZER.LAMBD = 0.0001
+
+# alpha in ASGD, RMSprop
+_C.OPTIMIZER.ALPHA = 0.75
+
+# t0 in ASGD
+_C.OPTIMIZER.T0 = 1000000.0
+
+# centered in RMSprop
+_C.OPTIMIZER.CENTERED = False
+
+# etas in Rprop
+_C.OPTIMIZER.ETAS = (0.5, 1.2)
+
+# step_size in Rprop
+_C.OPTIMIZER.STEP_SIZES = (1e-06, 50)
+
+# nesterov in SGD
+_C.OPTIMIZER.NESTEROV = False
+
+# max_iter in LBFGS
+_C.OPTIMIZER.MAX_ITER = 20
+
+# history_size in LBFGS
+_C.OPTIMIZER.HISTORY_SIZE = 100
+
+'''
+configs for lr scheduler
+'''
+_C.SCHEDULER = CN()
+
+# configs for ReduceLROnPlateau
+_C.SCHEDULER.VERBOSE = False
+_C.SCHEDULER.MODE = 'min'
+_C.SCHEDULER.FACTOR = 0.1
+_C.SCHEDULER.PATIENCE = 10
+_C.SCHEDULER.THRESHOLD = 1e-4
+_C.SCHEDULER.MIN_LR = 0.0
 
 
 def get_cfg_defaults():

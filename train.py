@@ -14,7 +14,7 @@ import torch.utils.data
 import torch.utils.data.distributed
 from config import get_cfg_defaults
 import tasks
-from utils import AverageMeter, ProgressMeter
+from utils import AverageMeter, ProgressMeter, get_optimizer
 
 # list all defined tasks
 all_tasks = sorted(name for name in tasks.__dict__
@@ -86,9 +86,10 @@ def main_worker(gpu):
 
     # loss and optimizer
     criterion = task.get_criterion().cuda(gpu)
-    optimizer = torch.optim.SGD(model.parameters(), cfg.TRAIN.LR,
-                                momentum=cfg.TRAIN.MOMENTUM,
-                                weight_decay=cfg.TRAIN.WEIGHT_DECAY)
+    optimizer = get_optimizer(model.parameters(), cfg)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE, factor=cfg.SCHEDULER.FACTOR,
+                                                           patience=cfg.SCHEDULER.PATIENCE, verbose=cfg.SCHEDULER.VERBOSE,
+                                                           threshold=cfg.SCHEDULER.THRESHOLD, min_lr=cfg.SCHEDULER.MIN_LR)
 
     if cfg.SYSTEM.FP16:
         model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
@@ -133,7 +134,6 @@ def main_worker(gpu):
     for epoch in range(start_epoch, cfg.TRAIN.EPOCHS):
         if distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, gpu)
@@ -155,6 +155,8 @@ def main_worker(gpu):
                 'best_metric': best_metric,
                 'optimizer': optimizer.state_dict(),
             }, is_best, filename=ckpt_filename)
+
+        scheduler.step(metric1)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, gpu):
@@ -261,13 +263,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pt'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, os.path.join(cfg.TRAIN.CHECKPT_PATH, 'model_best.pt'))
-
-
-def adjust_learning_rate(optimizer, epoch):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = cfg.TRAIN.LR * (0.1 ** (epoch // 30))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
 
 
 if __name__ == '__main__':
