@@ -27,12 +27,13 @@ cfg.freeze()
 
 # get the train task
 assert cfg.TRAIN.TASK in all_tasks, "undefined task {0}".format(cfg.TRAIN.TASK)
-task = tasks.__dict__[cfg.TRAIN.TASK](cfg)
+task = tasks.__dict__[cfg.TRAIN.TASK]()
 
 # whether use fp16
 if cfg.SYSTEM.FP16 is True:
     from apex import amp
 
+# keep the best model so far
 best_metric = 0
 
 
@@ -47,8 +48,10 @@ def main():
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
     if cfg.SYSTEM.NUM_GPUS > 1:
+        # use multiprocessing
         mp.spawn(main_worker, nprocs=cfg.SYSTEM.NUM_GPUS, args=())
     else:
+        # single-card training
         main_worker(None)
 
 
@@ -65,7 +68,7 @@ def main_worker(gpu):
     print("=> creating model...")
     model = task.get_model()
 
-    # initialize distributed settings
+    # initialize process group
     if distributed:
         dist.init_process_group(backend=cfg.SYSTEM.BACKEND, init_method=cfg.SYSTEM.DIST_URL,
                                 world_size=cfg.SYSTEM.NUM_GPUS)
@@ -88,7 +91,7 @@ def main_worker(gpu):
                                 weight_decay=cfg.TRAIN.WEIGHT_DECAY)
 
     if cfg.SYSTEM.FP16:
-        model, optimizer = amp.initialize(model, optimizer, opt_level='o1')
+        model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
     if len(cfg.TRAIN.RESUME_FROM) > 0:
         # resume from checkpoint
@@ -107,7 +110,7 @@ def main_worker(gpu):
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(cfg.TRAIN.RESUME_FROM, checkpoint['epoch']))
         else:
-            print("=> no checkpoint found at '{}'".format(cfg.TRAIN.RESUME_FROM))
+            warnings.warn("=> no checkpoint found at '{}'".format(cfg.TRAIN.RESUME_FROM))
 
     # may accelerate the computation
     cudnn.benchmark = cfg.TRAIN.CUDNN_BENCHMARK

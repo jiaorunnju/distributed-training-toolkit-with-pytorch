@@ -7,14 +7,15 @@ from .train_task import TrainTask
 
 class ImageClassifyTask(TrainTask):
 
-    def __init__(self, cfg):
-        super().__init__(cfg)
-
     def get_model(self):
         return models.mobilenet_v2()
 
     def get_train_dataset(self, path):
-        train_dir = self.cfg.TRAIN.TRAIN_DATA
+        """
+        get the train set
+        :return: a dataset object
+        """
+        train_dir = path
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
         train_dataset = datasets.ImageFolder(
@@ -28,7 +29,11 @@ class ImageClassifyTask(TrainTask):
         return train_dataset
 
     def get_valid_dataset(self, path):
-        valid_dir = self.cfg.TRAIN.VALID_DATA
+        """
+        get the validation set
+        :return: a dataset object
+        """
+        valid_dir = path
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
         valid_dataset = datasets.ImageFolder(
@@ -65,10 +70,6 @@ class ImageClassifyTask(TrainTask):
                     res.append(correct_k.mul_(100.0 / batch_size))
                 return res
 
-        '''
-        return a dict, name is the name of all metrics, and the function metric
-        takes in output and target, returns values of all metrics in a list 
-        '''
         return {
             "name": ['Acc@1', 'Acc@5'],
             "metric": lambda x, y: accuracy(x, y, topk=(1, 5)),
