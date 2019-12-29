@@ -1,15 +1,16 @@
 SYSTEM:
   NUM_GPUS: 1
-  FP16: True
+  FP16: False
 TRAIN:
   TASK: 'Cifar10Task'
   CUDNN_BENCHMARK: True
   TRAIN_DATA: '/data1/cifar10'
   VALID_DATA: '/data1/cifar10'
   BATCH_SIZE: 512
+  RESUME_FROM: 'checkpoint/model_epoch_3.pt'
 OPTIMIZER:
   NAME: SGD
-  LR: 0.01
+  LR: 0.1
   MOMENTUM: 0.9
   NESTEROV: True
 SCHEDULER:

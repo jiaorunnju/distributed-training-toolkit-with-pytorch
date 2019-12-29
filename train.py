@@ -84,7 +84,7 @@ def main_worker(gpu):
         model.cuda(gpu)
         batch_size = int(cfg.TRAIN.BATCH_SIZE / cfg.SYSTEM.NUM_GPUS)
         num_workers = int((cfg.SYSTEM.NUM_WORKERS + cfg.SYSTEM.NUM_GPUS - 1) / cfg.SYSTEM.NUM_GPUS)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu], output_device=gpu)
     else:
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
@@ -107,6 +107,9 @@ def main_worker(gpu):
             best_metric = best_metric.to(gpu)
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
+            # load amp state_dict
+            if cfg.SYSTEM.FP16:
+                amp.load_state_dict(checkpoint['amp'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(cfg.TRAIN.RESUME_FROM, checkpoint['epoch']))
         else:
@@ -153,6 +156,7 @@ def main_worker(gpu):
                 'state_dict': model.state_dict(),
                 'best_metric': best_metric,
                 'optimizer': optimizer.state_dict(),
+                'amp': None if not cfg.SYSTEM.FP16 else amp.state_dict()
             }, is_best, filename=ckpt_filename)
 
         scheduler.step(metric1)
