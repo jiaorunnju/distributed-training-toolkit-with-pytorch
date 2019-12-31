@@ -67,9 +67,14 @@ def main_worker(gpu):
     num_workers = cfg.SYSTEM.NUM_WORKERS
     start_epoch = cfg.TRAIN.START_EPOCH
 
+    # initialize process group
+    if distributed:
+        dist.init_process_group(backend=cfg.SYSTEM.BACKEND, init_method=cfg.SYSTEM.DIST_URL,
+                                world_size=cfg.SYSTEM.NUM_GPUS, rank=gpu)
+
     # initialize model
     print("=> creating model...")
-    model = task.get_model().cuda()
+    model = task.get_model()
     # loss and optimizer
     criterion = task.get_criterion().cuda(gpu)
     optimizer = get_optimizer(model.parameters(), cfg)
@@ -77,10 +82,6 @@ def main_worker(gpu):
     if cfg.SYSTEM.FP16:
         model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
-    # initialize process group
-    if distributed:
-        dist.init_process_group(backend=cfg.SYSTEM.BACKEND, init_method=cfg.SYSTEM.DIST_URL,
-                                world_size=cfg.SYSTEM.NUM_GPUS, rank=gpu)
     if gpu is not None:
         # distributed training
         torch.cuda.set_device(gpu)
@@ -92,14 +93,12 @@ def main_worker(gpu):
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
 
-    '''
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
                                                            factor=cfg.SCHEDULER.FACTOR,
                                                            patience=cfg.SCHEDULER.PATIENCE,
                                                            verbose=cfg.SCHEDULER.VERBOSE,
                                                            threshold=cfg.SCHEDULER.THRESHOLD,
                                                            min_lr=cfg.SCHEDULER.MIN_LR)
-    '''
 
     if len(cfg.TRAIN.RESUME_FROM) > 0:
         # resume from checkpoint
@@ -145,8 +144,6 @@ def main_worker(gpu):
         if distributed:
             train_sampler.set_epoch(epoch)
 
-        adjust_learning_rate(optimizer, epoch)
-
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, gpu)
 
@@ -169,7 +166,7 @@ def main_worker(gpu):
                 'amp': None if not cfg.SYSTEM.FP16 else amp.state_dict()
             }, is_best, filename=ckpt_filename)
 
-        # scheduler.step(metric1)
+        scheduler.step(metric1)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, gpu):

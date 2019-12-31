@@ -1,12 +1,13 @@
 SYSTEM:
   NUM_GPUS: 1
   FP16: False
+  NUM_WORKERS: 16
 TRAIN:
   TASK: 'ImageClassifyTask'
   CUDNN_BENCHMARK: True
   TRAIN_DATA: '/data1/imagenet/train'
   VALID_DATA: '/data1/imagenet/val'
-  BATCH_SIZE: 32
+  BATCH_SIZE: 1024
 OPTIMIZER:
   NAME: SGD
   LR: 0.1
@@ -14,5 +15,5 @@ OPTIMIZER:
   NESTEROV: True
 SCHEDULER:
   VERBOSE: True
-  PATIENCE: 10
-  THRESHOLD: 1e-4
+  PATIENCE: 5
+  THRESHOLD: 5e-4
