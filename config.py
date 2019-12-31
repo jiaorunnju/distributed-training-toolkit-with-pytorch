@@ -12,6 +12,9 @@ _C.SYSTEM = CN()
 # number of gpus used
 _C.SYSTEM.NUM_GPUS = 1
 
+# gpu ids
+_C.SYSTEM.GPUS = '0'
+
 # number of workers to load data
 _C.SYSTEM.NUM_WORKERS = 6
 

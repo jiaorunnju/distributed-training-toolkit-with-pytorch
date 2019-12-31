@@ -36,6 +36,7 @@ if cfg.SYSTEM.FP16 is True:
 # keep the best model so far
 best_metric = 0
 
+os.environ['CUDA_VISIBLE_DEVICES'] = cfg.SYSTEM.GPUS
 
 def main():
     if cfg.TRAIN.SEED is not -1:
