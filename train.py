@@ -36,8 +36,6 @@ if cfg.SYSTEM.FP16 is True:
 # keep the best model so far
 best_metric = 0
 
-os.environ['CUDA_VISIBLE_DEVICES'] = cfg.SYSTEM.GPUS
-
 
 def main():
     if cfg.TRAIN.SEED is not -1:
@@ -59,6 +57,9 @@ def main():
 
 def main_worker(gpu):
     global best_metric
+
+    if gpu is not None:
+        print("Use GPU: {} for training".format(gpu))
 
     # initialize local variables according to cfg
     distributed = True if cfg.SYSTEM.NUM_GPUS > 1 else False
@@ -168,7 +169,7 @@ def main_worker(gpu):
                 'amp': None if not cfg.SYSTEM.FP16 else amp.state_dict()
             }, is_best, filename=ckpt_filename)
 
-        #scheduler.step(metric1)
+        # scheduler.step(metric1)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, gpu):
@@ -279,7 +280,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pt'):
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = cfg.TRAIN.LR * (0.1 ** (epoch // 30))
+    lr = cfg.OPTIMIZER.LR * (0.1 ** (epoch // 30))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
