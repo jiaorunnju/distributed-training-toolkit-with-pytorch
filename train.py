@@ -79,19 +79,20 @@ def main_worker(gpu):
     criterion = task.get_criterion().cuda(gpu)
     optimizer = get_optimizer(model.parameters(), cfg)
 
-    if cfg.SYSTEM.FP16:
-        model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
-
     if gpu is not None:
         # distributed training
         torch.cuda.set_device(gpu)
         model.cuda(gpu)
+        if cfg.SYSTEM.FP16:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
         batch_size = int(cfg.TRAIN.BATCH_SIZE / cfg.SYSTEM.NUM_GPUS)
         num_workers = int((cfg.SYSTEM.NUM_WORKERS + cfg.SYSTEM.NUM_GPUS - 1) / cfg.SYSTEM.NUM_GPUS)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
     else:
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
+        if cfg.SYSTEM.FP16:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
                                                            factor=cfg.SCHEDULER.FACTOR,
