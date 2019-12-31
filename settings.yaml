@@ -1,14 +1,12 @@
 SYSTEM:
   NUM_GPUS: 4
   FP16: False
-  GPUS: '0,1,2,3'
 TRAIN:
-  TASK: 'Cifar10Task'
+  TASK: 'ImageClassifyTask'
   CUDNN_BENCHMARK: True
-  TRAIN_DATA: '/data1/cifar10'
-  VALID_DATA: '/data1/cifar10'
+  TRAIN_DATA: '/data/cifar10'
+  VALID_DATA: '/data/cifar10'
   BATCH_SIZE: 512
-  RESUME_FROM: 'checkpoint/model_epoch_3.pt'
 OPTIMIZER:
   NAME: SGD
   LR: 0.1
