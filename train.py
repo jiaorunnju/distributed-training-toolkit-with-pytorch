@@ -73,7 +73,10 @@ def main_worker(gpu):
                                 world_size=cfg.SYSTEM.NUM_GPUS, rank=gpu)
 
     # initialize model
-    print("=> creating model...")
+    if gpu is not None:
+        print("=> creating model on gpu {0}...".format(gpu))
+    else:
+        print("=> creating model on gpu...")
     model = task.get_model()
     # loss and optimizer
     criterion = task.get_criterion().cuda(gpu)
@@ -142,8 +145,9 @@ def main_worker(gpu):
             train_sampler.set_epoch(epoch)
 
         # print learning rate
-        print("Time: {0}".format(time.asctime(time.localtime(time.time()))),
-              " Learning Rate: {0}".format(scheduler.get_lr()[0]))
+        if gpu is None or gpu == 0:
+            print("Time: {0}".format(time.asctime(time.localtime(time.time()))),
+                  " Learning Rate: {0:4f}".format(scheduler.get_lr()[0]))
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, gpu)
@@ -264,8 +268,8 @@ def validate(val_loader, model, criterion, gpu):
             if i % cfg.TRAIN.PRINT_FREQ == 0:
                 progress.display(i)
 
-        if gpu == 0:
-            summary = [name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
+        if gpu == 0 or gpu is None:
+            summary = ["* " + name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
             print(*summary)
 
     return metric_list[0].avg

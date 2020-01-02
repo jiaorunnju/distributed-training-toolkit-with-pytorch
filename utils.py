@@ -129,9 +129,3 @@ class ProgressMeter(object):
         num_digits = len(str(num_batches // 1))
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
-
-
-if __name__ == '__main__':
-    x = [torch.autograd.Variable(torch.Tensor([1]), requires_grad=True), ]
-    op = get_optimizer(x, cfg)
-    print(op)
