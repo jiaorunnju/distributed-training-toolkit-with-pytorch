@@ -77,7 +77,7 @@ configs for optimizer
 _C.OPTIMIZER = CN()
 
 # optimizer
-_C.OPTIMIZER.NAME = 'SGD'
+_C.OPTIMIZER.TYPE = 'SGD'
 
 # learning rate
 _C.OPTIMIZER.LR = 0.01
@@ -132,13 +132,19 @@ configs for lr scheduler
 '''
 _C.SCHEDULER = CN()
 
+_C.SCHEDULER.TYPE = ''
 # configs for ReduceLROnPlateau
 _C.SCHEDULER.VERBOSE = False
-_C.SCHEDULER.MODE = 'min'
+_C.SCHEDULER.MODE = 'max'
 _C.SCHEDULER.FACTOR = 0.1
 _C.SCHEDULER.PATIENCE = 10
 _C.SCHEDULER.THRESHOLD = 1e-4
 _C.SCHEDULER.MIN_LR = 0.0
+
+# configs for other scheduelr
+_C.SCHEDULER.GAMMA = 0.95
+_C.SCHEDULER.STEP_SIZE = 30
+_C.SCHEDULER.MILE_STONES = [30, 80]
 
 
 def get_cfg_defaults():

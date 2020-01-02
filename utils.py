@@ -10,11 +10,11 @@ cfg.freeze()
 
 
 def get_optimizer(params, cfg):
-    name = cfg.OPTIMIZER.NAME
+    type = cfg.OPTIMIZER.TYPE
     all_optimizers = sorted(name for name in optim.__dict__
                             if (not name.endswith('Error') and not name.endswith('Exception')
                                 and not name.startswith('__') and name[0].isupper()))
-    assert name in all_optimizers, "undefined optimizer {0}".format(name)
+    assert type in all_optimizers, "undefined optimizer {0}".format(type)
 
     oc = {
         'lr': cfg.OPTIMIZER.LR,
@@ -35,35 +35,58 @@ def get_optimizer(params, cfg):
         'history_size': cfg.OPTIMIZER.HISTORY_SIZE,
     }
 
-    if name == 'Adadelta':
-        return optim.__dict__[name](params, lr=oc['lr'], rho=oc['rho'], weight_decay=oc['weight_decay'])
-    elif name == 'Adagrad':
-        return optim.__dict__[name](params, lr=oc['lr'], lr_decay=oc['lr_decay'], weight_decay=oc['weight_decay'])
-    elif name == 'Adam':
-        return optim.__dict__[name](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'],
+    if type == 'Adadelta':
+        return optim.__dict__[type](params, lr=oc['lr'], rho=oc['rho'], weight_decay=oc['weight_decay'])
+    elif type == 'Adagrad':
+        return optim.__dict__[type](params, lr=oc['lr'], lr_decay=oc['lr_decay'], weight_decay=oc['weight_decay'])
+    elif type == 'Adam':
+        return optim.__dict__[type](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'],
                                     amsgrad=oc['amsgrad'])
-    elif name == 'AdamW':
-        return optim.__dict__[name](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'],
+    elif type == 'AdamW':
+        return optim.__dict__[type](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'],
                                     amsgrad=oc['amsgrad'])
-    elif name == 'SparseAdam':
-        return optim.__dict__[name](params, lr=oc['lr'], betas=oc['betas'])
-    elif name == 'Adamax':
-        return optim.__dict__[name](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'])
-    elif name == 'ASGD':
-        return optim.__dict__[name](params, lr=oc['lr'], lambd=oc['lambd'], weight_decay=oc['weight_decay'],
+    elif type == 'SparseAdam':
+        return optim.__dict__[type](params, lr=oc['lr'], betas=oc['betas'])
+    elif type == 'Adamax':
+        return optim.__dict__[type](params, lr=oc['lr'], betas=oc['betas'], weight_decay=oc['weight_decay'])
+    elif type == 'ASGD':
+        return optim.__dict__[type](params, lr=oc['lr'], lambd=oc['lambd'], weight_decay=oc['weight_decay'],
                                     alpha=oc['alpha'], t0=oc['t0'])
-    elif name == 'LBFGS':
-        return optim.__dict__[name](params, lr=oc['lr'], max_iter=oc['max_iter'], history_size=oc['history_size'])
-    elif name == 'RMSprop':
-        return optim.__dict__[name](params, lr=oc['lr'], alpha=oc['alpha'], weight_decay=oc['weight_decay'],
+    elif type == 'LBFGS':
+        return optim.__dict__[type](params, lr=oc['lr'], max_iter=oc['max_iter'], history_size=oc['history_size'])
+    elif type == 'RMSprop':
+        return optim.__dict__[type](params, lr=oc['lr'], alpha=oc['alpha'], weight_decay=oc['weight_decay'],
                                     momentum=oc['momentum'], centered=oc['centered'])
-    elif name == 'Rprop':
-        return optim.__dict__[name](params, lr=oc['lr'], etas=oc['etas'], step_sizes=oc['step_sizes'])
-    elif name == "SGD":
-        return optim.__dict__[name](params, lr=oc['lr'], weight_decay=oc['weight_decay'],
+    elif type == 'Rprop':
+        return optim.__dict__[type](params, lr=oc['lr'], etas=oc['etas'], step_sizes=oc['step_sizes'])
+    elif type == "SGD":
+        return optim.__dict__[type](params, lr=oc['lr'], weight_decay=oc['weight_decay'],
                                     momentum=oc['momentum'], nesterov=oc['nesterov'])
     else:
-        raise RuntimeError("undefined optimizer in pytorch")
+        raise RuntimeError("undefined optimizer {0}".format(type))
+
+
+def get_scheduler(optimizer, last_epoch, cfg):
+    type = cfg.SCHEDULER.TYPE
+    step_size = cfg.SCHEDULER.STEP_SIZE
+    gamma = cfg.SCHEDULER.GAMMA
+    mile_stones = cfg.SCHEDULER.MILE_STONES
+
+    if type == 'StepLR':
+        return optim.lr_scheduler.StepLR(optimizer, step_size, gamma, last_epoch)
+    elif type == 'MultiStepLR':
+        return optim.lr_scheduler.MultiStepLR(optimizer, mile_stones, gamma, last_epoch)
+    elif type == 'ExponentialLR':
+        return optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch)
+    elif type == 'ReduceLROnPlateau':
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
+                                                          factor=cfg.SCHEDULER.FACTOR,
+                                                          patience=cfg.SCHEDULER.PATIENCE,
+                                                          verbose=cfg.SCHEDULER.VERBOSE,
+                                                          threshold=cfg.SCHEDULER.THRESHOLD,
+                                                          min_lr=cfg.SCHEDULER.MIN_LR)
+    else:
+        raise RuntimeError("undefined learning rate scheduler {0}".format(type))
 
 
 class AverageMeter(object):

@@ -14,7 +14,7 @@ import torch.utils.data
 import torch.utils.data.distributed
 from config import get_cfg_defaults
 import tasks
-from utils import AverageMeter, ProgressMeter, get_optimizer
+from utils import AverageMeter, ProgressMeter, get_optimizer, get_scheduler
 
 # list all defined tasks
 all_tasks = sorted(name for name in tasks.__dict__
@@ -92,14 +92,7 @@ def main_worker(gpu):
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
         if cfg.SYSTEM.FP16:
-            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL, verbosity=0)
-
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
-                                                           factor=cfg.SCHEDULER.FACTOR,
-                                                           patience=cfg.SCHEDULER.PATIENCE,
-                                                           verbose=cfg.SCHEDULER.VERBOSE,
-                                                           threshold=cfg.SCHEDULER.THRESHOLD,
-                                                           min_lr=cfg.SCHEDULER.MIN_LR)
+            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
 
     if len(cfg.TRAIN.RESUME_FROM) > 0:
         # resume from checkpoint
@@ -123,6 +116,9 @@ def main_worker(gpu):
         else:
             warnings.warn("=> no checkpoint found at '{}'".format(cfg.TRAIN.RESUME_FROM))
 
+    # define scheduler
+    scheduler = get_scheduler(optimizer, last_epoch=start_epoch-1, cfg=cfg)
+
     # may accelerate the computation
     cudnn.benchmark = cfg.TRAIN.CUDNN_BENCHMARK
 
@@ -144,6 +140,10 @@ def main_worker(gpu):
     for epoch in range(start_epoch, cfg.TRAIN.EPOCHS):
         if distributed:
             train_sampler.set_epoch(epoch)
+
+        # print learning rate
+        print("Time: {0}".format(time.asctime(time.localtime(time.time()))),
+              " Learning Rate: {0}".format(scheduler.get_lr()[0]))
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, gpu)
@@ -167,7 +167,7 @@ def main_worker(gpu):
                 'amp': None if not cfg.SYSTEM.FP16 else amp.state_dict()
             }, is_best, filename=ckpt_filename)
 
-        scheduler.step(metric1)
+        scheduler.step()
 
 
 def train(train_loader, model, criterion, optimizer, epoch, gpu):
@@ -264,8 +264,9 @@ def validate(val_loader, model, criterion, gpu):
             if i % cfg.TRAIN.PRINT_FREQ == 0:
                 progress.display(i)
 
-        summary = [name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
-        print(*summary)
+        if gpu == 0:
+            summary = [name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
+            print(*summary)
 
     return metric_list[0].avg
 
