@@ -92,7 +92,7 @@ def main_worker(gpu):
         # non-distributed
         model = torch.nn.DataParallel(model).cuda()
         if cfg.SYSTEM.FP16:
-            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL)
+            model, optimizer = amp.initialize(model, optimizer, opt_level=cfg.SYSTEM.OP_LEVEL, verbosity=0)
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
                                                            factor=cfg.SCHEDULER.FACTOR,
