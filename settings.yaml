@@ -18,5 +18,6 @@ OPTIMIZER:
   NESTEROV: True
   WEIGHT_DECAY: 5e-4
 SCHEDULER:
-  TYPE: 'ExponentialLR'
+  TYPE: 'CosineAnnealingLR'
   GAMMA: 0.98
+  MIN_LR: 0.0

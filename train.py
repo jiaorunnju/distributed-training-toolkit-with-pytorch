@@ -265,7 +265,7 @@ def validate(val_loader, model, criterion, gpu):
             batch_time.update(time.time() - end)
             end = time.time()
 
-            if i % cfg.TRAIN.PRINT_FREQ == 0:
+            if i % cfg.TRAIN.PRINT_FREQ == 0 and (gpu == 0 or gpu is None):
                 progress.display(i)
 
         if gpu == 0 or gpu is None:

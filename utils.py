@@ -78,6 +78,8 @@ def get_scheduler(optimizer, last_epoch, cfg):
         return optim.lr_scheduler.MultiStepLR(optimizer, mile_stones, gamma, last_epoch)
     elif type == 'ExponentialLR':
         return optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch)
+    elif type == 'CosineAnnealingLR':
+        return optim.lr_scheduler.CosineAnnealingLR(optimizer, cfg.TRAIN.EPOCHS, cfg.SCHEDULER.MIN_LR, last_epoch)
     elif type == 'ReduceLROnPlateau':
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
                                                           factor=cfg.SCHEDULER.FACTOR,
