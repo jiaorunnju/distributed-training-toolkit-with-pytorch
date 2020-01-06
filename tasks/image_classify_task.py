@@ -8,7 +8,7 @@ from .train_task import TrainTask
 class ImageClassifyTask(TrainTask):
 
     def get_model(self):
-        return models.mobilenet_v2()
+        return models.resnet50()
 
     def get_train_dataset(self, path):
         """

@@ -13,11 +13,12 @@ TRAIN:
   CHECKPT_PATH: '/data1/cifar10/checkpoint'
 OPTIMIZER:
   TYPE: SGD
-  LR: 0.1
+  BASE_LR: 0.1
   MOMENTUM: 0.9
   NESTEROV: True
   WEIGHT_DECAY: 5e-4
 SCHEDULER:
   TYPE: 'CosineAnnealingLR'
-  GAMMA: 0.98
   MIN_LR: 0.0
+  WARM_UP: True
+  WARM_UP_EPOCHS: 4

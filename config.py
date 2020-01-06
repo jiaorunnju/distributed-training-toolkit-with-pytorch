@@ -80,7 +80,7 @@ _C.OPTIMIZER = CN()
 _C.OPTIMIZER.TYPE = 'SGD'
 
 # learning rate
-_C.OPTIMIZER.LR = 0.01
+_C.OPTIMIZER.BASE_LR = 0.1
 
 # momentum in RMSprop, SGD,
 _C.OPTIMIZER.MOMENTUM = 0.0
@@ -133,18 +133,18 @@ configs for lr scheduler
 _C.SCHEDULER = CN()
 
 _C.SCHEDULER.TYPE = ''
-# configs for ReduceLROnPlateau
-_C.SCHEDULER.VERBOSE = False
-_C.SCHEDULER.MODE = 'max'
-_C.SCHEDULER.FACTOR = 0.1
-_C.SCHEDULER.PATIENCE = 10
-_C.SCHEDULER.THRESHOLD = 1e-4
+
 _C.SCHEDULER.MIN_LR = 0.0
 
 # configs for other scheduelr
 _C.SCHEDULER.GAMMA = 0.95
 _C.SCHEDULER.STEP_SIZE = 30
 _C.SCHEDULER.MILE_STONES = [30, 80]
+_C.SCHEDULER.T_MAX = _C.TRAIN.EPOCHS
+
+# configs for warm up
+_C.SCHEDULER.WARM_UP = True
+_C.SCHEDULER.WARM_UP_EPOCHS = 4
 
 
 def get_cfg_defaults():

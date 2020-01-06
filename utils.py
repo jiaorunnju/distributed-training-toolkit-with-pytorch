@@ -1,13 +1,6 @@
 import torch.optim as optim
 import torch
 
-# get configurations
-from config import get_cfg_defaults
-
-cfg = get_cfg_defaults()
-cfg.merge_from_file("settings.yaml")
-cfg.freeze()
-
 
 def get_optimizer(params, cfg):
     type = cfg.OPTIMIZER.TYPE
@@ -17,7 +10,7 @@ def get_optimizer(params, cfg):
     assert type in all_optimizers, "undefined optimizer {0}".format(type)
 
     oc = {
-        'lr': cfg.OPTIMIZER.LR,
+        'lr': cfg.OPTIMIZER.BASE_LR * cfg.SYSTEM.NUM_GPUS,
         'rho': cfg.OPTIMIZER.RHO,
         'weight_decay': cfg.OPTIMIZER.WEIGHT_DECAY,
         'lr_decay': cfg.OPTIMIZER.LR_DECAY,
@@ -73,22 +66,47 @@ def get_scheduler(optimizer, last_epoch, cfg):
     mile_stones = cfg.SCHEDULER.MILE_STONES
 
     if type == 'StepLR':
-        return optim.lr_scheduler.StepLR(optimizer, step_size, gamma, last_epoch)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size, gamma, last_epoch)
     elif type == 'MultiStepLR':
-        return optim.lr_scheduler.MultiStepLR(optimizer, mile_stones, gamma, last_epoch)
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, mile_stones, gamma, last_epoch)
     elif type == 'ExponentialLR':
-        return optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch)
     elif type == 'CosineAnnealingLR':
-        return optim.lr_scheduler.CosineAnnealingLR(optimizer, cfg.TRAIN.EPOCHS, cfg.SCHEDULER.MIN_LR, last_epoch)
-    elif type == 'ReduceLROnPlateau':
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=cfg.SCHEDULER.MODE,
-                                                          factor=cfg.SCHEDULER.FACTOR,
-                                                          patience=cfg.SCHEDULER.PATIENCE,
-                                                          verbose=cfg.SCHEDULER.VERBOSE,
-                                                          threshold=cfg.SCHEDULER.THRESHOLD,
-                                                          min_lr=cfg.SCHEDULER.MIN_LR)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, cfg.SCHEDULER.T_MAX, cfg.SCHEDULER.MIN_LR,
+                                                         last_epoch)
     else:
         raise RuntimeError("undefined learning rate scheduler {0}".format(type))
+
+    if cfg.SCHEDULER.WARM_UP:
+        return WarmupScheduler(optimizer, cfg.SCHEDULER.WARM_UP_EPOCHS, scheduler, last_epoch)
+    else:
+        return scheduler
+
+
+class WarmupScheduler(torch.optim.lr_scheduler._LRScheduler):
+
+    def __init__(self, optimizer, warmup_epochs, after_scheduler, last_epoch=-1):
+        self.scheduler = after_scheduler
+        self.warmup_epochs = warmup_epochs
+        self.finish_warmup = False
+        super(WarmupScheduler, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        if self.last_epoch >= self.warmup_epochs:
+            if not self.finish_warmup:
+                self.finish_warmup = True
+            return self.scheduler.get_lr()
+        else:
+            return [base_lr * (self.last_epoch + 1) / self.warmup_epochs for base_lr in self.base_lrs]
+
+    def step(self, epoch=None):
+        if self.finish_warmup and self.scheduler:
+            if epoch is None:
+                return self.scheduler.step(None)
+            else:
+                return self.scheduler.step(epoch - self.warmup_epochs)
+        else:
+            return super(WarmupScheduler, self).step(epoch)
 
 
 class AverageMeter(object):
