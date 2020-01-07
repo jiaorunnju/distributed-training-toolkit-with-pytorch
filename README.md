@@ -27,16 +27,18 @@ See **tasks/image_classify_task.py** for details.
 
 ## Performance
 On our server with 4 Nvidia V100 gpus, we can train a resnet-50
-to achieve 75.2% top-1 accuracy using standard data augments(flip, crop, normalize) within 16 hours.
+to achieve 76.57% top-1 accuracy using standard data augments(flip, crop, normalize) within 16 hours.
 
 Hyperparameters are:
 - 100 epochs
-- base learning rate 0.1
+- base learning rate 0.2
+- linear scaling of learning rate to 0.2*4=0.8
 - SGD with Nesterov momentum 0.9
 - weight-decay 1e-4
-- batch size 1024
+- batch size 2048
 - Apex optimization level *O1*
 - CosineAnnealing learning rate scheduler
+- warm up for 5 epochs with linear learning rates
 
 Some reminds
 - set enough workers for data loader
