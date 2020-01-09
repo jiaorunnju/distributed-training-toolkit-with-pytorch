@@ -22,6 +22,14 @@ class of a task is in **tasks/train_task.py**. You need to specify
 the model, dataset, loss and metrics for evaluation. After this, the 
 training progress is handled by this code template.
 
+1. define your task in **tasks/**, which should inherit `TrainTask`
+
+2. set hyperparameters in **settings.yaml**
+
+3. run `python train.py`, this command will load configurations automatically from 
+**config.py** and **settings.yaml**.
+
+
 ### An example for Imagenet training
 See **tasks/image_classify_task.py** for details.
 
