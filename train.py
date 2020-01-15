@@ -120,7 +120,7 @@ def main_worker(gpu):
             warnings.warn("=> no checkpoint found at '{}'".format(cfg.TRAIN.RESUME_FROM))
 
     # define scheduler
-    scheduler = get_scheduler(optimizer, last_epoch=start_epoch-1, cfg=cfg)
+    scheduler = get_scheduler(optimizer, last_epoch=start_epoch - 1, cfg=cfg)
 
     # may accelerate the computation
     cudnn.benchmark = cfg.TRAIN.CUDNN_BENCHMARK
@@ -269,7 +269,8 @@ def validate(val_loader, model, criterion, gpu):
                 progress.display(i)
 
         if gpu == 0 or gpu is None:
-            summary = ["* " + name + ": " + str(round(float(val.avg), 3)) for name, val in zip(metric_dict['name'], metric_list)]
+            summary = ["* " + name + ": " + str(round(float(val.avg), 3)) for name, val in
+                       zip(metric_dict['name'], metric_list)]
             print(*summary)
 
     return metric_list[0].avg
@@ -279,13 +280,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pt'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, os.path.join(cfg.TRAIN.CHECKPT_PATH, 'model_best.pt'))
-
-
-def adjust_learning_rate(optimizer, epoch):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = cfg.OPTIMIZER.LR * (0.1 ** (epoch // 30))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
 
 
 if __name__ == '__main__':
